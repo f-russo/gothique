@@ -1,69 +1,58 @@
-import Image from "next/image";
+import { Suspense } from "react";
 
-export default function Home() {
+import { BookGrid } from "@/components/book-grid";
+import { FadeIn } from "@/components/fade-in";
+import { getFavoriteBookIds, listBooks } from "@/lib/queries";
+import { getCurrentUser } from "@/lib/session";
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
+      <FadeIn className="mb-10 max-w-2xl sm:mb-14">
+        <p className="mb-3 font-serif text-sm uppercase tracking-[0.3em] text-primary/80">
+          Est. in candlelight
+        </p>
+        <h1 className="font-serif text-4xl leading-tight text-foreground sm:text-5xl">
+          A gothic book archive
+        </h1>
+        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+          One hundred classics of the dark imagination — drawn from Project
+          Gutenberg, kept in shadow, and waiting for your mark. Favourite the
+          books that haunt you, and leave a review for the ones that won&rsquo;t
+          let you sleep.
+        </p>
+      </FadeIn>
+
+      <Suspense fallback={<GridSkeleton />}>
+        <Archive />
+      </Suspense>
+    </main>
+  );
+}
+
+/** Reads the session for the current user's favourites, so it streams in. */
+async function Archive() {
+  const user = await getCurrentUser();
+  const books = listBooks();
+  const favoriteIds = user ? getFavoriteBookIds(user.id) : new Set<number>();
+  return <BookGrid books={books} favoriteIds={favoriteIds} />;
+}
+
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 10 }, (_, i) => `skeleton-${i}`).map((key) => (
+        <div
+          key={key}
+          className="animate-pulse overflow-hidden rounded-lg border border-border/60 bg-card/40"
+        >
+          <div className="aspect-[2/3] w-full bg-secondary/50" />
+          <div className="space-y-2 p-3">
+            <div className="h-4 w-3/4 rounded bg-secondary/60" />
+            <div className="h-3 w-1/2 rounded bg-secondary/40" />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      ))}
     </div>
   );
 }

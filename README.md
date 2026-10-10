@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gothique
 
-## Getting Started
+A gothic book archive — one hundred classics of the dark imagination, drawn from
+[Project Gutenberg](https://www.gutenberg.org), kept in shadow, and waiting for your
+mark. Favourite the books that haunt you, and leave a review for the ones that
+won't let you sleep.
 
-First, run the development server:
+Styled as a dimly lit vintage bookstore: a dark, candlelit palette, serif
+lettering, and delicate, evocative motion.
+
+## Features
+
+- **The Archive** — a browsable grid of 100 pre-seeded gothic classics with
+  cover art, author, year, and community rating.
+- **Book pages** — cover, description, rating, a link to read on Project
+  Gutenberg, and the reading room (reviews).
+- **Accounts** — sign up and sign in with email & password (Better Auth).
+- **Favourites** — mark the books that haunt you; manage them from your shelf.
+- **Reviews** — leave a public 1–5 star review with text; edit or remove your
+  own. One review per person per book.
+
+## Tech stack
+
+| Concern      | Choice                                              |
+| ------------ | --------------------------------------------------- |
+| Framework    | [Next.js 16](https://nextjs.org) (App Router, Turbopack, Cache Components) |
+| Language     | TypeScript (strict)                                 |
+| Styling      | [Tailwind CSS 4](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com) |
+| Animation    | [Framer Motion](https://www.framer.com/motion/)      |
+| Database     | SQLite via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) + [Drizzle ORM](https://orm.drizzle.team) |
+| Auth         | [Better Auth](https://better-auth.com) (email/password, sessions) |
+| Validation   | [Zod](https://zod.dev)                              |
+| Lint/Format  | [Biome](https://biomejs.dev)                        |
+| Tests        | [Vitest](https://vitest.dev) (unit/integration) + [Playwright](https://playwright.dev) (E2E smoke) |
+
+## Getting started
+
+Requires [Node.js](https://nodejs.org) 20+ and [pnpm](https://pnpm.io).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 1. Install dependencies
+pnpm install
+
+# 2. Create your environment file and set a secret
+cp .env.example .env
+#    -> generate a secret:  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# 3. Create the database schema (SQLite file at data/gothique.db)
+pnpm db:push
+
+# 4. Seed the 100 books
+pnpm db:seed
+
+# 5. Start the dev server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script             | What it does                                    |
+| ------------------ | ----------------------------------------------- |
+| `pnpm dev`         | Start the dev server (Turbopack)                |
+| `pnpm build`       | Production build                                |
+| `pnpm start`       | Serve the production build                      |
+| `pnpm db:push`     | Push the Drizzle schema to SQLite               |
+| `pnpm db:seed`     | Seed the 100 books (idempotent)                 |
+| `pnpm db:studio`   | Open Drizzle Studio (DB browser)                |
+| `pnpm test`        | Run unit/integration tests (Vitest)             |
+| `pnpm test:watch`  | Run tests in watch mode                         |
+| `pnpm test:e2e`    | Run the browser E2E smoke test (needs `pnpm dev` running) |
+| `pnpm lint`        | Lint + type-check formatting (Biome)            |
+| `pnpm format`      | Auto-format (Biome)                             |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+  page.tsx              # The Archive (home)
+  books/[id]/page.tsx   # Book detail + reading room
+  login/ register/      # Auth pages
+  account/page.tsx      # My Shelf (favourites + reviews)
+  api/auth/[...all]/    # Better Auth route handler
+components/             # Feature components (cards, forms, header, …)
+  ui/                   # shadcn/ui primitives
+lib/
+  auth.ts               # Better Auth server config
+  auth-client.ts        # Better Auth client (useSession, etc.)
+  session.ts            # getCurrentUser() — session read (use cache: private)
+  actions.ts            # Server Actions (favourites, reviews)
+  queries.ts            # Read queries (books, reviews, favourites)
+  schemas.ts            # Shared Zod validation
+  db/                   # Drizzle schema, connection, seed data + script
+test/                   # Vitest suites + in-memory DB helper
+scripts/e2e-smoke.mjs   # Playwright end-to-end smoke test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Cache Components & streaming.** With `cacheComponents` enabled, the static
+  shell of each page prerenders instantly; session-dependent UI (the user menu,
+  favourite state, review form) streams in behind `<Suspense>` boundaries. The
+  session read uses `use cache: private` so per-session navigations stay instant.
+- **Covers.** Cover images are served from Project Gutenberg; `BookCover` falls
+  back to an embossed initial if an image is missing.
+- **The database file** (`data/`) and `.env` are gitignored.
