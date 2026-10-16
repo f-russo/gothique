@@ -6,6 +6,34 @@ import { db } from "./db";
 import { user } from "./db/auth-schema";
 import { books, favorites, reviews } from "./db/schema";
 
+/** Book columns shared by every book query. */
+const bookColumns = {
+  id: books.id,
+  title: books.title,
+  author: books.author,
+  year: books.year,
+  description: books.description,
+  coverUrl: books.coverUrl,
+  gutenbergId: books.gutenbergId,
+  gutenbergUrl: books.gutenbergUrl,
+} as const;
+
+/** Review columns shared by every review query. */
+const reviewColumns = {
+  id: reviews.id,
+  rating: reviews.rating,
+  text: reviews.text,
+  createdAt: reviews.createdAt,
+  updatedAt: reviews.updatedAt,
+  userId: reviews.userId,
+} as const;
+
+/** Rating aggregates joined onto books via a left join on reviews. */
+const ratingColumns = {
+  avgRating: sql<number | null>`avg(${reviews.rating})`,
+  reviewCount: sql<number>`count(${reviews.id})`,
+} as const;
+
 /** A book joined with its community rating aggregate. */
 export type BookWithRating = {
   id: number;
@@ -20,21 +48,10 @@ export type BookWithRating = {
   reviewCount: number;
 };
 
-/** All books, newest rating activity first is not tracked — so by title. */
+/** All books, ordered by review count (most-reviewed first), then title. */
 export function listBooks(): BookWithRating[] {
   return db
-    .select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      year: books.year,
-      description: books.description,
-      coverUrl: books.coverUrl,
-      gutenbergId: books.gutenbergId,
-      gutenbergUrl: books.gutenbergUrl,
-      avgRating: sql<number | null>`avg(${reviews.rating})`,
-      reviewCount: sql<number>`count(${reviews.id})`,
-    })
+    .select({ ...bookColumns, ...ratingColumns })
     .from(books)
     .leftJoin(reviews, eq(books.id, reviews.bookId))
     .groupBy(books.id)
@@ -44,18 +61,7 @@ export function listBooks(): BookWithRating[] {
 
 export function getBook(id: number): BookWithRating | undefined {
   return db
-    .select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      year: books.year,
-      description: books.description,
-      coverUrl: books.coverUrl,
-      gutenbergId: books.gutenbergId,
-      gutenbergUrl: books.gutenbergUrl,
-      avgRating: sql<number | null>`avg(${reviews.rating})`,
-      reviewCount: sql<number>`count(${reviews.id})`,
-    })
+    .select({ ...bookColumns, ...ratingColumns })
     .from(books)
     .leftJoin(reviews, eq(books.id, reviews.bookId))
     .where(eq(books.id, id))
@@ -75,15 +81,7 @@ export type ReviewWithAuthor = {
 
 export function getReviewsForBook(bookId: number): ReviewWithAuthor[] {
   return db
-    .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      text: reviews.text,
-      createdAt: reviews.createdAt,
-      updatedAt: reviews.updatedAt,
-      userId: reviews.userId,
-      authorName: user.name,
-    })
+    .select({ ...reviewColumns, authorName: user.name })
     .from(reviews)
     .innerJoin(user, eq(reviews.userId, user.id))
     .where(eq(reviews.bookId, bookId))
@@ -96,15 +94,7 @@ export function getReviewByUserAndBook(
   bookId: number,
 ): ReviewWithAuthor | undefined {
   return db
-    .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      text: reviews.text,
-      createdAt: reviews.createdAt,
-      updatedAt: reviews.updatedAt,
-      userId: reviews.userId,
-      authorName: user.name,
-    })
+    .select({ ...reviewColumns, authorName: user.name })
     .from(reviews)
     .innerJoin(user, eq(reviews.userId, user.id))
     .where(and(eq(reviews.userId, userId), eq(reviews.bookId, bookId)))
@@ -162,11 +152,7 @@ export type UserReview = {
 export function getUserReviews(userId: string): UserReview[] {
   return db
     .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      text: reviews.text,
-      createdAt: reviews.createdAt,
-      updatedAt: reviews.updatedAt,
+      ...reviewColumns,
       bookId: reviews.bookId,
       title: books.title,
       author: books.author,
