@@ -1,19 +1,20 @@
-"use client";
-
-import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
+type TagName = "div" | "li" | "section" | "article";
+
 const tags = {
-  div: motion.div,
-  li: motion.li,
-  section: motion.section,
-  article: motion.article,
+  div: "div",
+  li: "li",
+  section: "section",
+  article: "article",
 } as const;
 
-type TagName = keyof typeof tags;
-
 /**
- * A delicate fade-up entrance that respects the user's reduced-motion setting.
+ * A delicate fade-up entrance, done in pure CSS so it works even if client
+ * JavaScript never loads or hydration fails (e.g. on a phone over the LAN).
+ * Respects the user's reduced-motion setting via a media query in globals.css.
  */
 export function FadeIn({
   children,
@@ -26,16 +27,13 @@ export function FadeIn({
   className?: string;
   as?: TagName;
 }) {
-  const reduce = useReducedMotion();
-  const MotionTag = tags[as];
+  const Tag = tags[as];
   return (
-    <MotionTag
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+    <Tag
+      className={cn("fade-in", className)}
+      style={delay ? { animationDelay: `${delay}s` } : undefined}
     >
       {children}
-    </MotionTag>
+    </Tag>
   );
 }
