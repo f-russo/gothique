@@ -13,7 +13,11 @@
     "test:e2e": "node scripts/e2e-smoke.mjs",
     "db:push": "drizzle-kit push --force",
     "db:seed": "tsx lib/db/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "visual:test": "node scripts/visual-test.mjs",
+    "visual:update": "node scripts/visual-test.mjs --update"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.11",
@@ -38,16 +42,29 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.2",
+    "@chromatic-com/storybook": "latest",
+    "@storybook/addon-a11y": "^10.6.2",
+    "@storybook/addon-docs": "^10.6.2",
+    "@storybook/addon-mcp": "^10.6.2",
+    "@storybook/addon-vitest": "^10.6.2",
+    "@storybook/nextjs-vite": "^10.6.2",
     "@tailwindcss/turbopack": "^4",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/browser-playwright": "5.0.3",
+    "@vitest/coverage-v8": "5.0.3",
     "drizzle-kit": "^0.31.11",
+    "pixelmatch": "^8.0.0",
     "playwright": "^1.64.0",
+    "pngjs": "^6.0.0",
+    "storybook": "^10.6.2",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
+    "vite": "latest",
     "vitest": "^5.0.3"
   },
   "packageManager": "pnpm@11.24.0"

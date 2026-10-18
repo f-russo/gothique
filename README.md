@@ -94,6 +94,7 @@ lib/
   db/                   # Drizzle schema, connection, seed data + script
 test/                   # Vitest suites + in-memory DB helper
 scripts/e2e-smoke.mjs   # Playwright end-to-end smoke test
+scripts/visual-test.mjs # Visual regression tests over Storybook stories
 ```
 
 ## Notes
@@ -105,3 +106,17 @@ scripts/e2e-smoke.mjs   # Playwright end-to-end smoke test
 - **Covers.** Cover images are served from Project Gutenberg; `BookCover` falls
   back to an embossed initial if an image is missing.
 - **The database file** (`data/`) and `.env` are gitignored.
+- **Visual regression tests.** Stories live next to their components
+  (`components/**/*.stories.tsx`) and are screenshotted by
+  `scripts/visual-test.mjs`. Baselines are stored in
+  `test/visual/__screenshots__/`.
+
+  ```sh
+  pnpm run visual:test     # compare against baselines (CI mode)
+  pnpm run visual:update   # re-record baselines after intentional changes
+  pnpm run visual:test -- --filter star-rating   # run a subset
+  ```
+
+  Stories must be deterministic: no dates, randomness, or remote images.
+  Animations are frozen by the harness; keep new stories static or they will
+  produce flaky diffs.
