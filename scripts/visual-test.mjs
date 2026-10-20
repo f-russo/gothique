@@ -14,17 +14,24 @@
  *   - Network-idle wait before capture (images settled)
  *   - Deterministic stories only: no dates, randomness, or remote images
  */
+
+import { spawn } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import pixelmatch from "pixelmatch";
 import { chromium } from "playwright";
 import { PNG } from "pngjs";
-import pixelmatch from "pixelmatch";
-import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, existsSync, readdirSync, writeFileSync, rmSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-const SHOTS_DIR = join(ROOT, "test", "visual", "__screenshots__");
+const SHOTS_DIR = join(ROOT, "tests", "visual", "__screenshots__");
 const PORT = 6006;
 const BASE = `http://localhost:${PORT}`;
 
@@ -48,8 +55,8 @@ const FREEZE_CSS = `
   html { scroll-behavior: auto !important; }
 `;
 
-const log = (m) => console.log("  • " + m);
-const fail = (m) => console.error("  ✗ " + m);
+const log = (m) => console.log(`  • ${m}`);
+const fail = (m) => console.error(`  ✗ ${m}`);
 
 async function waitForServer(url, timeoutMs = 90_000) {
   const start = Date.now();
@@ -89,7 +96,10 @@ async function listStories() {
   const index = JSON.parse(text);
   const all = Object.entries(index.entries ?? {});
   return all
-    .filter(([id, entry]) => entry.type === "story" && !entry.parameters?.visualTest?.skip)
+    .filter(
+      ([_id, entry]) =>
+        entry.type === "story" && !entry.parameters?.visualTest?.skip,
+    )
     .map(([id, entry]) => ({ id, title: entry.title, name: entry.name }));
 }
 
@@ -107,7 +117,9 @@ async function main() {
   const filtered = FILTER
     ? stories.filter((s) => s.id.toLowerCase().includes(FILTER.toLowerCase()))
     : stories;
-  log(`Found ${stories.length} stories${FILTER ? `, testing ${filtered.length}` : ""}.`);
+  log(
+    `Found ${stories.length} stories${FILTER ? `, testing ${filtered.length}` : ""}.`,
+  );
 
   let passed = 0;
   const failures = [];
@@ -150,7 +162,8 @@ async function main() {
           return (
             (document.body.innerText || "").includes(
               "Failed to fetch dynamically imported module",
-            ) || !root ||
+            ) ||
+            !root ||
             root.children.length === 0
           );
         });
@@ -172,7 +185,9 @@ async function main() {
 
       const baseline = PNG.sync.read(readFileSync(path));
       if (baseline.width !== shot.width || baseline.height !== shot.height) {
-        fail(`${file}: size changed (${baseline.width}x${baseline.height} → ${shot.width}x${shot.height})`);
+        fail(
+          `${file}: size changed (${baseline.width}x${baseline.height} → ${shot.width}x${shot.height})`,
+        );
         failures.push(file);
         writeFileSync(path.replace(".png", ".diff.png"), PNG.sync.write(shot));
         continue;
@@ -190,7 +205,9 @@ async function main() {
       writeFileSync(path.replace(".png", ".diff.png"), PNG.sync.write(diff));
 
       if (diffPixels > MAX_DIFF_PIXELS) {
-        fail(`${file}: ${diffPixels} pixels differ (>${MAX_DIFF_PIXELS}) — see .diff.png`);
+        fail(
+          `${file}: ${diffPixels} pixels differ (>${MAX_DIFF_PIXELS}) — see .diff.png`,
+        );
         failures.push(file);
       } else {
         passed++;

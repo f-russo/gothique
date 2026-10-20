@@ -17,7 +17,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "visual:test": "node scripts/visual-test.mjs",
-    "visual:update": "node scripts/visual-test.mjs --update"
+    "visual:update": "node scripts/visual-test.mjs --update",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.11",

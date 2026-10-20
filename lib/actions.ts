@@ -3,12 +3,12 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import type { z } from "zod";
-
 import { auth } from "./auth";
 import { db } from "./db";
 import { books, favorites, reviews } from "./db/schema";
-import { reviewInputSchema } from "./schemas";
+import { parseReviewInput } from "./review-input";
+import type { ReviewInput } from "./schemas";
+import { normalizeEntityId } from "./utils";
 
 /**
  * Shared result shape so Client Components can render errors uniformly.
@@ -46,8 +46,8 @@ export async function toggleFavorite(
   bookId: number,
 ): Promise<ActionState> {
   const user = await requireUser();
-  const id = Number(bookId);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = normalizeEntityId(bookId);
+  if (id === null) {
     return { ok: false, error: "Unknown book." };
   }
 
@@ -68,15 +68,7 @@ export async function toggleFavorite(
   return { ok: true };
 }
 
-type SaveReviewInput = FormData | z.infer<typeof reviewInputSchema>;
-
-function fromFormData(fd: FormData) {
-  return {
-    bookId: fd.get("bookId"),
-    rating: fd.get("rating"),
-    text: fd.get("text"),
-  };
-}
+type SaveReviewInput = FormData | ReviewInput;
 
 /**
  * Create or update the current user's review for a book (one per user per book).
@@ -87,13 +79,9 @@ export async function saveReview(
   raw: SaveReviewInput,
 ): Promise<ActionState> {
   const user = await requireUser();
-  const source = raw instanceof FormData ? fromFormData(raw) : raw;
-  const parsed = reviewInputSchema.safeParse(source);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid review.",
-    };
+  const parsed = parseReviewInput(raw);
+  if (!parsed.ok) {
+    return { ok: false, error: parsed.error };
   }
   const { bookId, text } = parsed.data;
   const rating = parsed.data.rating as Rating;
@@ -128,8 +116,8 @@ export async function deleteReview(
   reviewId: number,
 ): Promise<ActionState> {
   const user = await requireUser();
-  const id = Number(reviewId);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = normalizeEntityId(reviewId);
+  if (id === null) {
     return { ok: false, error: "Unknown review." };
   }
 
